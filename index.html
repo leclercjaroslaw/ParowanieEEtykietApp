@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EAN Scanner v1.6</title>
+    <meta name="theme-color" content="#ffffff">
+    
+    <!-- Link do manifestu (WYMAGANY do instalacji PWA) -->
+    <link rel="manifest" href="manifest.json">
+
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-light: #f0f2f5; --text-light: #333; --btn-light: #007bff; --btn-hover-light: #0056b3; --cont-light: #fff; --border-light: #ccc;
+            --bg-dark: #2c2c2c; --text-dark: #f1f1f1; --btn-dark: #0056b3; --btn-hover-dark: #003d80; --cont-dark: #3a3a3a; --border-dark: #555;
+        }
+
+        /* Przenosimy style body tutaj, transition dla płynnej zmiany koloru */
+        body { 
+            margin: 0; 
+            font-family: sans-serif; 
+            background-color: var(--bg-light); 
+            color: var(--text-light); 
+            transition: background-color 0.3s, color 0.3s; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh; 
+        }
+        
+        /* Klasa dark aplikowana do body */
+        body.dark { background-color: var(--bg-dark); color: var(--text-dark); }
+
+        .App { width: 100%; max-width: 600px; padding: 20px; box-sizing: border-box; text-align: center; }
+        
+        body.scan-success { animation: flash-green 0.5s; }
+        @keyframes flash-green { 0% { background-color: lightgreen; } 100% { background-color: inherit; } }
+
+        select, button { font-size: 1rem; padding: 10px; margin: 5px; border-radius: 5px; border: 1px solid var(--border-light); }
+        button { background-color: var(--btn-light); color: white; border: none; cursor: pointer; }
+        button:hover { background-color: var(--btn-hover-light); }
+        
+        body.dark select { background-color: var(--cont-dark); color: var(--text-dark); border-color: var(--border-dark); }
+        body.dark button { background-color: var(--btn-dark); }
+
+        #reader { width: 100%; border: 2px solid var(--border-light); border-radius: 8px; overflow: hidden; margin: 20px 0; background: black; }
+        body.dark #reader { border-color: var(--border-dark); }
+
+        .result-box { margin-top: 20px; padding: 15px; border-radius: 8px; background-color: var(--cont-light); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        body.dark .result-box { background-color: var(--cont-dark); }
+        
+        .status-msg { font-weight: bold; margin-top: 10px; }
+        .status-success { color: green; }
+        .status-error { color: red; }
+        body.dark .status-success { color: lightgreen; }
+        body.dark .status-error { color: #ff6b6b; }
+    </style>
+</head>
+<!-- POPRAWKA: x-data przeniesione do BODY, dzięki temu :class="{'dark': ...}" działa -->
+<body x-data="scannerApp()" :class="{ 'dark': darkMode, 'scan-success': flashSuccess }">
+    
+    <div class="App">
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px;">
+            <h3 style="margin:0;">EAN Scanner v1.6</h3>
+            <button @click="toggleDarkMode" x-text="darkMode ? '☀️ Tryb Jasny' : '🌙 Tryb Ciemny'"></button>
+        </div>
+
+        <select x-model="scanMode" @change="handleModeChange" style="width: 100%;">
+            <option value="ean">🔍 Skaner kodów EAN (WWW)</option>
+            <option value="pairing">🔗 Parowanie E-etykiet</option>
+            <option value="bakery">🥖 E-etykiety piekarnia</option>
+        </select>
+
+        <!-- Przycisk instalacji pojawi się tylko, jeśli PWA jest poprawnie skonfigurowane -->
+        <button x-show="installable" @click="handleInstallClick" style="width: 100%; background-color: #28a745; margin-top: 10px;">
+            📲 Zainstaluj aplikację
+        </button>
+
+        <div id="reader"></div>
+
+        <template x-if="scanMode === 'ean'">
+            <div class="result-box">
+                <p>Ostatni kod: <b x-text="lastScannedCode || '...'"></b></p>
+                <a x-show="lastScannedCode" 
+                   :href="`${CONFIG.PHP_URL}?ean=${lastScannedCode}&webApp=1`" 
+                   target="_blank"
+                   class="button" style="display:inline-block; padding:10px; background:var(--btn-light); color:white; text-decoration:none; border-radius:5px; margin-top:10px;">
+                   Otwórz w wyszukiwarce
+                </a>
+            </div>
+        </template>
+
+        <template x-if="scanMode === 'pairing'">
+            <div class="result-box">
+                <p>Produkt (EAN): <b x-text="scannedProduct || '-'"></b></p>
+                <p>Etykieta (ID): <b x-text="scannedEtiquette || '-'"></b></p>
+                <p class="status-msg" :class="pairingStatus.type" x-text="pairingStatus.msg"></p>
+                <button x-show="scannedProduct || scannedEtiquette" @click="resetPairing">Wyczyść</button>
+            </div>
+        </template>
+
+        <template x-if="scanMode === 'bakery'">
+            <div class="result-box">
+                <p>Etykieta: <b x-text="scannedEtiquette || '-'"></b></p>
+                <div x-show="scannedEtiquette">
+                    <select x-model="selectedBakeryProduct" style="width:100%">
+                        <option value="">-- Wybierz produkt --</option>
+                        <template x-for="product in bakeryProducts" :key="product.ean">
+                            <option :value="product.ean" x-text="product.name"></option>
+                        </template>
+                    </select>
+                    <button @click="pairBakeryProduct" :disabled="!selectedBakeryProduct" style="margin-top:10px; width:100%">Paruj</button>
+                </div>
+                <p class="status-msg" :class="pairingStatus.type" x-text="pairingStatus.msg"></p>
+            </div>
+        </template>
+
+        <div style="margin-top: 30px; font-size: 0.8rem; opacity: 0.7;">
+            API: <span x-text="CONFIG.API_URL"></span>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            PHP_URL: 'http://192.168.210.219/aplikacja_mobilna.php', 
+            API_URL: 'https://192.168.210.219:8888/api'
+        };
+
+        // Rejestracja Service Workera (WYMAGANE DLA PWA)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').then(function(registration) {
+                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            }, function(err) {
+                console.log('ServiceWorker registration failed: ', err);
+            });
+        }
+
+        function scannerApp() {
+            return {
+                CONFIG,
+                darkMode: false, // Inicjalizacja
+                scanMode: 'pairing',
+                lastScannedCode: null,
+                flashSuccess: false,
+                scannedProduct: null,
+                scannedEtiquette: null,
+                pairingStatus: { msg: '', type: '' },
+                bakeryProducts: [
+                    { name: 'Chleb pszenny', ean: '2000000013961' },
+                    { name: 'Bułka tarta', ean: '5909876543210' },
+                    { name: 'Rogal maślany', ean: '5905555555555' }
+                ],
+                selectedBakeryProduct: '',
+                scanner: null,
+                lastProcessedCode: null,
+                lastScannedTime: 0,
+                installable: false,
+                deferredPrompt: null,
+
+                init() {
+                    // Odczyt motywu
+                    const savedTheme = localStorage.getItem('theme');
+                    if (savedTheme) {
+                        this.darkMode = savedTheme === 'dark';
+                    } else {
+                        this.darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    }
+                    
+                    this.initializeScanner();
+
+                    // Obsługa instalacji PWA
+                    window.addEventListener('beforeinstallprompt', (e) => {
+                        console.log('Zdarzenie beforeinstallprompt przechwycone');
+                        e.preventDefault();
+                        this.deferredPrompt = e;
+                        this.installable = true;
+                    });
+                },
+
+                toggleDarkMode() {
+                    this.darkMode = !this.darkMode;
+                    localStorage.setItem('theme', this.darkMode ? 'dark' : 'light');
+                },
+
+                triggerFeedback(success = true) {
+                    if (navigator.vibrate) navigator.vibrate(success ? 200 : [100, 50, 100]);
+                    if (success) {
+                        this.flashSuccess = true;
+                        setTimeout(() => this.flashSuccess = false, 500);
+                    }
+                },
+
+                handleScan(decodedText) {
+                    const now = Date.now();
+                    if (this.lastProcessedCode === decodedText && now - this.lastScannedTime < 2500) return;
+
+                    this.lastProcessedCode = decodedText;
+                    this.lastScannedTime = now;
+                    console.log(`Zeskanowano: ${decodedText}`);
+
+                    if (this.scanMode === 'ean') {
+                        if (/^\d{8}|\d{13}$/.test(decodedText)) {
+                            this.lastScannedCode = decodedText;
+                            this.triggerFeedback(true);
+                        }
+                    } else if (this.scanMode === 'pairing') {
+                        if (/^[0-9]+$/.test(decodedText)) {
+                            this.scannedProduct = decodedText;
+                            this.triggerFeedback(true);
+                        } else if (/[a-zA-Z]/.test(decodedText)) {
+                            this.scannedEtiquette = decodedText;
+                            this.triggerFeedback(true);
+                        }
+                        if (this.scannedProduct && this.scannedEtiquette) this.pairProductAndEtiquette();
+                    } else if (this.scanMode === 'bakery') {
+                        if (/[a-zA-Z]/.test(decodedText)) {
+                            this.scannedEtiquette = decodedText;
+                            this.triggerFeedback(true);
+                        }
+                    }
+                },
+
+                initializeScanner() {
+                    const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+                    this.scanner = new Html5QrcodeScanner('reader', config, false);
+                    this.scanner.render(this.handleScan.bind(this), (err) => {});
+                },
+
+                handleModeChange() {
+                    this.resetPairing();
+                    this.lastScannedCode = null;
+                },
+
+                resetPairing() {
+                    this.scannedProduct = null;
+                    this.scannedEtiquette = null;
+                    this.selectedBakeryProduct = '';
+                    this.pairingStatus = { msg: '', type: '' };
+                },
+
+                async pairProductAndEtiquette() {
+                    if (!this.scannedProduct || !this.scannedEtiquette) return;
+                    await this.pair(this.scannedProduct, this.scannedEtiquette);
+                    if (this.pairingStatus.type === 'status-success') {
+                        setTimeout(() => this.resetPairing(), 2000);
+                    }
+                },
+
+                async pairBakeryProduct() {
+                    if (!this.selectedBakeryProduct || !this.scannedEtiquette) return;
+                    await this.pair(this.selectedBakeryProduct, this.scannedEtiquette);
+                    if (this.pairingStatus.type === 'status-success') {
+                         setTimeout(() => {
+                             this.scannedEtiquette = null;
+                             this.selectedBakeryProduct = '';
+                             this.pairingStatus = { msg: '', type: '' };
+                         }, 2000);
+                    }
+                },
+
+                async pair(productCode, etiquetteCode) {
+                    this.pairingStatus = { msg: 'Przetwarzanie...', type: '' };
+                    try {
+                        const formData = new FormData();
+                        formData.append('plu_kod', productCode);
+                        formData.append('api_mode', 'true');
+                        formData.append('nr_etykiety_elektronicznej', etiquetteCode);
+
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                        const response = await fetch(CONFIG.API_URL, {
+                            method: 'POST', body: formData, signal: controller.signal
+                        });
+                        clearTimeout(timeoutId);
+
+                        if (response.ok) {
+                            this.pairingStatus = { msg: 'OK! Sparowano.', type: 'status-success' };
+                            this.triggerFeedback(true);
+                        } else {
+                            throw new Error(`Błąd: ${response.status}`);
+                        }
+                    } catch (error) {
+                        console.error('API Error:', error);
+                        this.pairingStatus = { msg: 'Błąd połączenia.', type: 'status-error' };
+                        if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+                    }
+                },
+
+                handleInstallClick() {
+                    this.installable = false;
+                    if (this.deferredPrompt) {
+                        this.deferredPrompt.prompt();
+                        this.deferredPrompt.userChoice.then((choiceResult) => {
+                            if (choiceResult.outcome === 'accepted') {
+                                console.log('Zaakceptowano');
+                            } else {
+                                this.installable = true;
+                            }
+                            this.deferredPrompt = null;
+                        });
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
