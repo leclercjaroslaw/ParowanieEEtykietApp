@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EAN Scanner v1.6</title>
+    <title>EAN Scanner v1.8</title>
     <meta name="theme-color" content="#ffffff">
     
-    <!-- Link do manifestu (WYMAGANY do instalacji PWA) -->
     <link rel="manifest" href="manifest.json">
 
-    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- 1. Biblioteki zewnętrzne -->
+    <!-- Html5-Qrcode -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script> 
+    <!-- 2. Nasz plik z logiką (musi być defer) -->
+    <script src="app.js" defer></script>
     
     <style>
         :root {
@@ -18,10 +20,9 @@
             --bg-dark: #2c2c2c; --text-dark: #f1f1f1; --btn-dark: #0056b3; --btn-hover-dark: #003d80; --cont-dark: #3a3a3a; --border-dark: #555;
         }
 
-        /* Przenosimy style body tutaj, transition dla płynnej zmiany koloru */
         body { 
             margin: 0; 
-            font-family: sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-light); 
             color: var(--text-light); 
             transition: background-color 0.3s, color 0.3s; 
@@ -31,7 +32,6 @@
             min-height: 100vh; 
         }
         
-        /* Klasa dark aplikowana do body */
         body.dark { background-color: var(--bg-dark); color: var(--text-dark); }
 
         .App { width: 100%; max-width: 600px; padding: 20px; box-sizing: border-box; text-align: center; }
@@ -57,14 +57,18 @@
         .status-error { color: red; }
         body.dark .status-success { color: lightgreen; }
         body.dark .status-error { color: #ff6b6b; }
+
+        .footer-link { margin-top: 30px; font-size: 0.8rem; opacity: 0.8; }
+        .footer-link a { color: inherit; text-decoration: underline; }
     </style>
 </head>
-<!-- POPRAWKA: x-data przeniesione do BODY, dzięki temu :class="{'dark': ...}" działa -->
-<body x-data="scannerApp()" :class="{ 'dark': darkMode, 'scan-success': flashSuccess }">
+
+<!-- WAŻNE: Usunięto nawiasy (), teraz jest po prostu "scannerApp" -->
+<body x-data="scannerApp" :class="{ 'dark': darkMode, 'scan-success': flashSuccess }">
     
     <div class="App">
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px;">
-            <h3 style="margin:0;">EAN Scanner v1.6</h3>
+            <h3 style="margin:0;">EAN Scanner v1.8</h3>
             <button @click="toggleDarkMode" x-text="darkMode ? '☀️ Tryb Jasny' : '🌙 Tryb Ciemny'"></button>
         </div>
 
@@ -74,7 +78,6 @@
             <option value="bakery">🥖 E-etykiety piekarnia</option>
         </select>
 
-        <!-- Przycisk instalacji pojawi się tylko, jeśli PWA jest poprawnie skonfigurowane -->
         <button x-show="installable" @click="handleInstallClick" style="width: 100%; background-color: #28a745; margin-top: 10px;">
             📲 Zainstaluj aplikację
         </button>
@@ -118,194 +121,12 @@
             </div>
         </template>
 
-        <div style="margin-top: 30px; font-size: 0.8rem; opacity: 0.7;">
-            API: <span x-text="CONFIG.API_URL"></span>
+        <div class="footer-link">
+            API Link: 
+            <a :href="CONFIG.API_URL" target="_blank" x-text="CONFIG.API_URL"></a>
         </div>
     </div>
-
-    <script>
-        const CONFIG = {
-            PHP_URL: 'http://192.168.210.219/aplikacja_mobilna.php', 
-            API_URL: 'https://192.168.210.219:8888/api'
-        };
-
-        // Rejestracja Service Workera (WYMAGANE DLA PWA)
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').then(function(registration) {
-                console.log('ServiceWorker registration successful with scope: ', registration.scope);
-            }, function(err) {
-                console.log('ServiceWorker registration failed: ', err);
-            });
-        }
-
-        function scannerApp() {
-            return {
-                CONFIG,
-                darkMode: false, // Inicjalizacja
-                scanMode: 'pairing',
-                lastScannedCode: null,
-                flashSuccess: false,
-                scannedProduct: null,
-                scannedEtiquette: null,
-                pairingStatus: { msg: '', type: '' },
-                bakeryProducts: [
-                    { name: 'Chleb pszenny', ean: '2000000013961' },
-                    { name: 'Bułka tarta', ean: '5909876543210' },
-                    { name: 'Rogal maślany', ean: '5905555555555' }
-                ],
-                selectedBakeryProduct: '',
-                scanner: null,
-                lastProcessedCode: null,
-                lastScannedTime: 0,
-                installable: false,
-                deferredPrompt: null,
-
-                init() {
-                    // Odczyt motywu
-                    const savedTheme = localStorage.getItem('theme');
-                    if (savedTheme) {
-                        this.darkMode = savedTheme === 'dark';
-                    } else {
-                        this.darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                    }
-                    
-                    this.initializeScanner();
-
-                    // Obsługa instalacji PWA
-                    window.addEventListener('beforeinstallprompt', (e) => {
-                        console.log('Zdarzenie beforeinstallprompt przechwycone');
-                        e.preventDefault();
-                        this.deferredPrompt = e;
-                        this.installable = true;
-                    });
-                },
-
-                toggleDarkMode() {
-                    this.darkMode = !this.darkMode;
-                    localStorage.setItem('theme', this.darkMode ? 'dark' : 'light');
-                },
-
-                triggerFeedback(success = true) {
-                    if (navigator.vibrate) navigator.vibrate(success ? 200 : [100, 50, 100]);
-                    if (success) {
-                        this.flashSuccess = true;
-                        setTimeout(() => this.flashSuccess = false, 500);
-                    }
-                },
-
-                handleScan(decodedText) {
-                    const now = Date.now();
-                    if (this.lastProcessedCode === decodedText && now - this.lastScannedTime < 2500) return;
-
-                    this.lastProcessedCode = decodedText;
-                    this.lastScannedTime = now;
-                    console.log(`Zeskanowano: ${decodedText}`);
-
-                    if (this.scanMode === 'ean') {
-                        if (/^\d{8}|\d{13}$/.test(decodedText)) {
-                            this.lastScannedCode = decodedText;
-                            this.triggerFeedback(true);
-                        }
-                    } else if (this.scanMode === 'pairing') {
-                        if (/^[0-9]+$/.test(decodedText)) {
-                            this.scannedProduct = decodedText;
-                            this.triggerFeedback(true);
-                        } else if (/[a-zA-Z]/.test(decodedText)) {
-                            this.scannedEtiquette = decodedText;
-                            this.triggerFeedback(true);
-                        }
-                        if (this.scannedProduct && this.scannedEtiquette) this.pairProductAndEtiquette();
-                    } else if (this.scanMode === 'bakery') {
-                        if (/[a-zA-Z]/.test(decodedText)) {
-                            this.scannedEtiquette = decodedText;
-                            this.triggerFeedback(true);
-                        }
-                    }
-                },
-
-                initializeScanner() {
-                    const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
-                    this.scanner = new Html5QrcodeScanner('reader', config, false);
-                    this.scanner.render(this.handleScan.bind(this), (err) => {});
-                },
-
-                handleModeChange() {
-                    this.resetPairing();
-                    this.lastScannedCode = null;
-                },
-
-                resetPairing() {
-                    this.scannedProduct = null;
-                    this.scannedEtiquette = null;
-                    this.selectedBakeryProduct = '';
-                    this.pairingStatus = { msg: '', type: '' };
-                },
-
-                async pairProductAndEtiquette() {
-                    if (!this.scannedProduct || !this.scannedEtiquette) return;
-                    await this.pair(this.scannedProduct, this.scannedEtiquette);
-                    if (this.pairingStatus.type === 'status-success') {
-                        setTimeout(() => this.resetPairing(), 2000);
-                    }
-                },
-
-                async pairBakeryProduct() {
-                    if (!this.selectedBakeryProduct || !this.scannedEtiquette) return;
-                    await this.pair(this.selectedBakeryProduct, this.scannedEtiquette);
-                    if (this.pairingStatus.type === 'status-success') {
-                         setTimeout(() => {
-                             this.scannedEtiquette = null;
-                             this.selectedBakeryProduct = '';
-                             this.pairingStatus = { msg: '', type: '' };
-                         }, 2000);
-                    }
-                },
-
-                async pair(productCode, etiquetteCode) {
-                    this.pairingStatus = { msg: 'Przetwarzanie...', type: '' };
-                    try {
-                        const formData = new FormData();
-                        formData.append('plu_kod', productCode);
-                        formData.append('api_mode', 'true');
-                        formData.append('nr_etykiety_elektronicznej', etiquetteCode);
-
-                        const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-                        const response = await fetch(CONFIG.API_URL, {
-                            method: 'POST', body: formData, signal: controller.signal
-                        });
-                        clearTimeout(timeoutId);
-
-                        if (response.ok) {
-                            this.pairingStatus = { msg: 'OK! Sparowano.', type: 'status-success' };
-                            this.triggerFeedback(true);
-                        } else {
-                            throw new Error(`Błąd: ${response.status}`);
-                        }
-                    } catch (error) {
-                        console.error('API Error:', error);
-                        this.pairingStatus = { msg: 'Błąd połączenia.', type: 'status-error' };
-                        if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
-                    }
-                },
-
-                handleInstallClick() {
-                    this.installable = false;
-                    if (this.deferredPrompt) {
-                        this.deferredPrompt.prompt();
-                        this.deferredPrompt.userChoice.then((choiceResult) => {
-                            if (choiceResult.outcome === 'accepted') {
-                                console.log('Zaakceptowano');
-                            } else {
-                                this.installable = true;
-                            }
-                            this.deferredPrompt = null;
-                        });
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Alpine.js (musi być defer) -->
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </body>
 </html>
