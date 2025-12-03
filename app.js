@@ -32,9 +32,11 @@ document.addEventListener('alpine:init', () => {
         
         // Dane piekarni
         bakeryProducts: [
-            { name: 'Chleb pszenny', ean: '2000000013961' },
-            { name: 'Bułka tarta', ean: '5909876543210' },
-            { name: 'Rogal maślany', ean: '5905555555555' }
+            { name: 'PĄCZEK Z RÓŻĄ', ean: '0000000001185' },
+            { name: 'PĄCZEK Z PISTACJĄ', ean: '0000000001987' },
+            { name: 'PĄCZEK Z KREMEM', ean: '0000000000892' },
+            { name: 'PĄCZEK Z BANANEM', ean: '2000000013701' },
+            { name: 'PĄCZEK Z KOKOSEM', ean: '2000000013961' }
         ],
         selectedBakeryProduct: '',
         
