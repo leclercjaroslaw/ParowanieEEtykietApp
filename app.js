@@ -521,6 +521,7 @@ document.addEventListener('alpine:init', () => {
     { name: 'Ziemniaczek', ean: '0000000001331' }
 ],
         selectedBakeryProduct: '',
+        bakerySearchQuery: '',
         
         // Zmienne techniczne
         scanner: null,
@@ -627,7 +628,28 @@ document.addEventListener('alpine:init', () => {
             this.scannedProduct = null;
             this.scannedEtiquette = null;
             this.selectedBakeryProduct = '';
+            this.bakerySearchQuery = '';
             this.pairingStatus = { msg: '', type: '' };
+        },
+
+        normalizeSearchText(text) {
+            return (text ?? '')
+                .toString()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/\p{Diacritic}/gu, '')
+                .trim();
+        },
+
+        get filteredBakeryProducts() {
+            const q = this.normalizeSearchText(this.bakerySearchQuery);
+            if (!q) return this.bakeryProducts;
+
+            return this.bakeryProducts.filter(p => {
+                const name = this.normalizeSearchText(p.name);
+                const ean = this.normalizeSearchText(p.ean);
+                return name.includes(q) || ean.includes(q);
+            });
         },
 
         async pairProductAndEtiquette() {

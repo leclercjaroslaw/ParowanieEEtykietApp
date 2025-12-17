@@ -109,12 +109,21 @@
             <div class="result-box">
                 <p>Etykieta: <b x-text="scannedEtiquette || '-'"></b></p>
                 <div x-show="scannedEtiquette">
+                    <input
+                        x-model="bakerySearchQuery"
+                        type="search"
+                        placeholder="Szukaj produktu (nazwa lub EAN)…"
+                        style="width:100%; font-size:1rem; padding:10px; margin:5px; border-radius:5px; border:1px solid var(--border-light); box-sizing:border-box;"
+                    />
                     <select x-model="selectedBakeryProduct" style="width:100%">
                         <option value="">-- Wybierz produkt --</option>
-                        <template x-for="product in bakeryProducts" :key="product.ean">
+                        <template x-for="product in filteredBakeryProducts" :key="product.ean">
                             <option :value="product.ean" x-text="product.name"></option>
                         </template>
                     </select>
+                    <p x-show="bakerySearchQuery && filteredBakeryProducts.length === 0" style="margin:5px 0; font-size:0.9rem; opacity:0.8;">
+                        Brak wyników.
+                    </p>
                     <button @click="pairBakeryProduct" :disabled="!selectedBakeryProduct" style="margin-top:10px; width:100%">Paruj</button>
                 </div>
                 <p class="status-msg" :class="pairingStatus.type" x-text="pairingStatus.msg"></p>
