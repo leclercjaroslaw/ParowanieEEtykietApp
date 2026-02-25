@@ -32,6 +32,7 @@ document.addEventListener('alpine:init', () => {
         
         // Dane piekarni
         bakeryProducts: [
+    { name: 'PĄCZEK Z MALINĄ', ean: '2000000019338' },
     { name: 'MONOPORCJA', ean: '2000000019253' },
     { name: 'PĄCZEK STRACIATELLA', ean: '2000000019178' },
     { name: 'BUŁKA ŻYTNIA IG', ean: '0000000006161' },
