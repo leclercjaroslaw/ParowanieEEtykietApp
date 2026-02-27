@@ -32,6 +32,11 @@ document.addEventListener('alpine:init', () => {
         
         // Dane piekarni
         bakeryProducts: [
+    { name: 'PĄCZEK Z MALINĄ', ean: '2000000019338' },
+    { name: 'MONOPORCJA', ean: '2000000019253' },
+    { name: 'PĄCZEK STRACIATELLA', ean: '2000000019178' },
+    { name: 'BUŁKA ŻYTNIA IG', ean: '0000000006161' },
+    { name: 'BUŁKA IG', ean: '0000000091236' },
     { name: 'TORT TIRAMISU', ean: '2912263000000' },
     { name: '7 days', ean: '2200018000000' },
     { name: 'Ambasador', ean: '2917886000000' },
