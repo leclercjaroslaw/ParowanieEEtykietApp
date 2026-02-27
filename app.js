@@ -313,7 +313,7 @@ document.addEventListener('alpine:init', () => {
     { name: 'Drożdżówka z serem i marmoladą', ean: '0000000003035' },
     { name: 'DROŻDŻÓWKA Z TOFFI', ean: '0000000000419' },
     { name: 'DROŻDŻÓWKA ZE SZPINAKIEM', ean: '0000000001995' },
-    { name: 'Drożdżówka ze szpinakiem', ean: '0000000001038' },
+    { name: 'PRZEKĄSKA ZE SZPINAKIEM', ean: '0000000001038' },
     { name: 'Eklerk', ean: '0000000001569' },
     { name: 'EKLERKI Z NADZIENIEM PISTACJOWY', ean: '0000000001988' },
     { name: 'Fale jak w Dunaju', ean: '2912166000000' },
