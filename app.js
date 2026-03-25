@@ -32,6 +32,11 @@ document.addEventListener('alpine:init', () => {
         
         // Dane piekarni
         bakeryProducts: [
+    { name: 'EGZOTYCZNA CYTRYNA', ean: '291715000000' },
+    { name: 'BUŁKA TWAROGOWA', ean: '0000000001444' },
+    { name: 'PALUCH SEZONOWY', ean: '0000000001448' },
+    { name: 'SEZONOWY Z POKRZYWĄ', ean: '0000000001446' },
+    { name: 'SEZONOWY Z CZOSNKIEM', ean: '0000000001447' },
     { name: 'PĄCZEK Z MALINĄ', ean: '2000000019338' },
     { name: 'MONOPORCJA', ean: '2000000019253' },
     { name: 'PĄCZEK STRACIATELLA', ean: '2000000019178' },
