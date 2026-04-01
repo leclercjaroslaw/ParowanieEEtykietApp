@@ -32,7 +32,7 @@ document.addEventListener('alpine:init', () => {
         
         // Dane piekarni
         bakeryProducts: [
-    { name: 'EGZOTYCZNA CYTRYNA', ean: '291715000000' },
+    { name: 'EGZOTYCZNA CYTRYNA', ean: '2919715000000' },
     { name: 'BUŁKA TWAROGOWA', ean: '0000000001444' },
     { name: 'PALUCH SEZONOWY', ean: '0000000001448' },
     { name: 'SEZONOWY Z POKRZYWĄ', ean: '0000000001446' },
