@@ -34,7 +34,7 @@ document.addEventListener('alpine:init', () => {
         bakeryProducts: [
     { name: 'BUŁKA KUKURYDZIANA FIESTA', ean: '2000000021133' },
     { name: 'BUŁKA PROTEINOWA', ean: '2000000021218' },
-    { name: 'BUŁKA Z MĄKI BEZGUTENOWEJ', ean: '2000000021058ku' },
+    { name: 'BUŁKA Z MĄKI BEZGUTENOWEJ', ean: '2000000021058' },
     { name: 'EGZOTYCZNA CYTRYNA', ean: '2919715000000' },
     { name: 'BUŁKA TWAROGOWA', ean: '0000000001444' },
     { name: 'PALUCH SEZONOWY', ean: '0000000001448' },
