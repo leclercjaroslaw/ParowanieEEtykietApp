@@ -32,6 +32,13 @@ document.addEventListener('alpine:init', () => {
         
         // Dane piekarni
         bakeryProducts: [
+    { name: 'BROWNIE Z OREO', ean: '2399997000000' },
+    { name: 'CHLEB VERMONT', ean: '2000000021706' },
+    { name: 'BAGIETKA ORKISZOWA', ean: '2000000021881' },
+    { name: 'MUFFINKA WIŚNIOWA', ean: '2000000021966' },
+    { name: 'SERNIK NA ZIMNO', ean: '2918727000000' },
+    { name: 'ROLADA ORZECHOWA', ean: '2915465000000' },
+    { name: 'ROLADA JABŁKOWA', ean: '2914589000000' },
     { name: 'BUŁKA KUKURYDZIANA FIESTA', ean: '2000000021133' },
     { name: 'BUŁKA PROTEINOWA', ean: '2000000021218' },
     { name: 'BUŁKA Z MĄKI BEZGUTENOWEJ', ean: '2000000021058' },
