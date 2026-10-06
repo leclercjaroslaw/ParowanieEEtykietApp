@@ -32,6 +32,7 @@ document.addEventListener('alpine:init', () => {
         
         // Dane piekarni
         bakeryProducts: [
+    { name: 'ŁABĘDŹ', ean: '2399995000000' },
     { name: 'WIŚNIOWA FANTAZJA', ean: '2912142000000' },
     { name: 'BROWNIE Z OREO', ean: '2399997000000' },
     { name: 'CHLEB VERMONT', ean: '2000000021706' },
