@@ -15,6 +15,8 @@
     <script src="app.js" defer></script>
     
     <style>
+        [x-cloak] { display: none !important; }
+
         :root {
             --bg-light: #f0f2f5; --text-light: #333; --btn-light: #007bff; --btn-hover-light: #0056b3; --cont-light: #fff; --border-light: #ccc;
             --bg-dark: #2c2c2c; --text-dark: #f1f1f1; --btn-dark: #0056b3; --btn-hover-dark: #003d80; --cont-dark: #3a3a3a; --border-dark: #555;
@@ -69,7 +71,24 @@
     <div class="App">
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px;">
             <h3 style="margin:0;">EAN Scanner v1.8</h3>
-            <button @click="toggleDarkMode" x-text="darkMode ? '☀️ Tryb Jasny' : '🌙 Tryb Ciemny'"></button>
+            <div style="display:flex; gap:5px;">
+                <button @click="showSettings = !showSettings" title="Ustawienia">⚙️</button>
+                <button @click="toggleDarkMode" x-text="darkMode ? '☀️ Tryb Jasny' : '🌙 Tryb Ciemny'"></button>
+            </div>
+        </div>
+
+        <!-- Panel ustawień skanera sprzętowego -->
+        <div x-show="showSettings" x-cloak class="result-box" style="text-align:left; margin:0 0 20px;">
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="checkbox"
+                       :checked="hasHardwareScanner"
+                       @change="setHardwareScanner($event.target.checked)"
+                       style="width:22px; height:22px; margin:0;">
+                <span>Urządzenie posiada wbudowany skaner optyczny</span>
+            </label>
+            <p style="margin:10px 0 0; font-size:0.85rem; opacity:0.8;">
+                Kamera zostanie wyłączona, a kody będą odbierane ze skanera sprzętowego (np. Zebra TC22).
+            </p>
         </div>
 
         <select x-model="scanMode" @change="handleModeChange" style="width: 100%;">
@@ -82,7 +101,10 @@
             📲 Zainstaluj aplikację
         </button>
 
-        <div id="reader"></div>
+        <div id="reader" x-show="!hasHardwareScanner"></div>
+        <p x-show="hasHardwareScanner" x-cloak style="margin:20px 0; font-weight:bold;">
+            🔫 Skaner wbudowany aktywny. Naciśnij przycisk skanowania na urządzeniu.
+        </p>
 
         <template x-if="scanMode === 'ean'">
             <div class="result-box">

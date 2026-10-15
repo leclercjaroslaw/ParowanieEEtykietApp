@@ -22,6 +22,8 @@ document.addEventListener('alpine:init', () => {
         
         darkMode: false,
         scanMode: 'pairing',
+        showSettings: false,
+        hasHardwareScanner: false,
         lastScannedCode: null,
         flashSuccess: false,
         
@@ -560,8 +562,12 @@ document.addEventListener('alpine:init', () => {
             } else {
                 this.darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
             }
-            
+
+            // Sprawdzenie czy urządzenie ma skaner sprzętowy
+            this.hasHardwareScanner = localStorage.getItem('hasHardwareScanner') === '1';
+
             this.initializeScanner();
+            this.initHardwareScanner();
 
             // PWA Install Prompt
             window.addEventListener('beforeinstallprompt', (e) => {
@@ -598,7 +604,7 @@ document.addEventListener('alpine:init', () => {
             console.log(`[SCAN] ${decodedText} (${this.scanMode})`);
 
             if (this.scanMode === 'ean') {
-                if (/^\d{8}|\d{13}$/.test(decodedText)) {
+                if (/^(\d{8}|\d{13})$/.test(decodedText)) {
                     this.lastScannedCode = decodedText;
                     this.triggerFeedback(true);
                 }
@@ -625,6 +631,9 @@ document.addEventListener('alpine:init', () => {
         },
 
         initializeScanner() {
+            // Guard: nie uruchamiaj kamery jeśli jest skaner sprzętowy lub skaner już działa
+            if (this.hasHardwareScanner || this.scanner) return;
+
             // Uruchomienie skanera z małym opóźnieniem, żeby DOM był gotowy
             this.$nextTick(() => {
                 const config = { 
@@ -726,6 +735,46 @@ document.addEventListener('alpine:init', () => {
                 this.pairingStatus = { msg: 'Błąd połączenia.', type: 'status-error' };
                 if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100]);
             }
+        },
+
+        setHardwareScanner(enabled) {
+            this.hasHardwareScanner = enabled;
+            localStorage.setItem('hasHardwareScanner', enabled ? '1' : '0');
+
+            if (enabled) {
+                // wyłącz kamerę
+                if (this.scanner) {
+                    this.scanner.clear().catch(() => {});
+                    this.scanner = null;
+                }
+            } else {
+                this.initializeScanner();
+            }
+        },
+
+        initHardwareScanner() {
+            let buffer = '';
+            let timer = null;
+
+            document.addEventListener('keydown', (e) => {
+                if (!this.hasHardwareScanner) return;
+
+                // nie przechwytuj, gdy użytkownik pisze w polu (np. wyszukiwarka piekarni)
+                const tag = e.target.tagName;
+                if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+                if (e.key === 'Enter') {
+                    if (buffer.length >= 3) this.handleScan(buffer.trim());
+                    buffer = '';
+                    return;
+                }
+
+                if (e.key.length === 1) {
+                    buffer += e.key;
+                    clearTimeout(timer);
+                    timer = setTimeout(() => { buffer = ''; }, 300);
+                }
+            });
         },
 
         handleInstallClick() {
