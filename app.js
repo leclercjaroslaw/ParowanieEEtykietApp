@@ -34,6 +34,7 @@ document.addEventListener('alpine:init', () => {
         
         // Dane piekarni
         bakeryProducts: [
+    { name: 'CHLEB ORZECHOWY', ean: '2413095000000' },
     { name: 'DROŻDZÓWKA MALINIANKA', ean: '2402731000000' },
     { name: 'ŁABĘDŹ', ean: '2399995000000' },
     { name: 'WIŚNIOWA FANTAZJA', ean: '2912142000000' },
