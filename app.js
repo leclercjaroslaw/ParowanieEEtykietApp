@@ -34,6 +34,7 @@ document.addEventListener('alpine:init', () => {
         
         // Dane piekarni
         bakeryProducts: [
+    { name: 'CIASTO LOTUS', ean: '2998072000000' },
     { name: 'CHLEB ZAPARZANY Z ORKISZEM', ean: '2403616000000' },
     { name: 'CHLEB ORZECHOWY', ean: '2413095000000' },
     { name: 'DROŻDZÓWKA MALINIANKA', ean: '2402731000000' },
