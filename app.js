@@ -34,6 +34,8 @@ document.addEventListener('alpine:init', () => {
         
         // Dane piekarni
         bakeryProducts: [
+    { name: 'CHLEB SEZONOWY Z POKRZYWĄ', ean: '0000000001446' },
+    { name: 'CHLEB SEZONOWY Z CZOSNKIEM', ean: '0000000001447' },
     { name: 'CIASTO LOTUS', ean: '2998072000000' },
     { name: 'CHLEB ZAPARZANY Z ORKISZEM', ean: '2403616000000' },
     { name: 'CHLEB ORZECHOWY', ean: '2413095000000' },
